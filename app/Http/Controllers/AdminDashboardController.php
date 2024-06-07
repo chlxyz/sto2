@@ -18,6 +18,7 @@ class AdminDashboardController extends Controller
             return view ('admin.showproduct', compact('products'))->with('success', 'Product available');
         }
     }
+    
     public function findProduct(Request $request){
         $product = Product::find($request->product_id);
     
