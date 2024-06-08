@@ -73,7 +73,6 @@
                 <button onclick="location.href='{{ route('admin.dashboard') }}'" class="block py-2 px-4 text-gray-600 hover:bg-gray-300">Products</button>
                 <button onclick="location.href='{{ route('add.productform') }}'" class="block py-2 px-4 text-gray-600 hover:bg-gray-300">Add Product</button>
                 <button onclick="location.href='{{ route('order.adminshow') }}'" class="block py-2 px-4 text-gray-600 hover:bg-gray-300">Orders</button>
-                <a href="#" class="block py-2 px-4 text-gray-600 hover:bg-gray-300">Payment Methods</a>
                 <button onclick="location.href='{{ route('admin.allusers') }}'" class="block py-2 px-4 text-gray-600 hover:bg-gray-300">Manage Users</button>
             </div>
         </nav>
