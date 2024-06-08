@@ -28,6 +28,16 @@
             event.preventDefault();
             loadContent('{{ route('add.productform') }}');
         });
+
+        document.getElementById('showorders-link').addEventListener('click', function (event) {
+            event.preventDefault();
+            loadContent('{{ route('order.adminshow') }}');
+        });
+
+        document.getElementById('allusers-link').addEventListener('click', function (event) {
+            event.preventDefault();
+            loadContent('{{ route('admin.allusers') }}');
+        });
     });
 
     function loadContent(url) {
@@ -50,7 +60,10 @@
         <div class="flex items-center">
             <a href="{{ route('admin.dashboard') }}" class="text-white">Admin Panel</a>
         </div>
-        <form action="{{ route('logoutHandler') }}" method="POST" class="flex items-center text-white">Logout</form><!-- Updated here -->
+        <form action="{{ route('logoutHandler') }}" method="POST" class="flex items-center text-white">
+            @csrf
+            <button type="submit" class="">Logout</button>
+        </form>
     </div>
     </nav>
 
@@ -59,9 +72,9 @@
             <div>
                 <button onclick="location.href='{{ route('admin.dashboard') }}'" class="block py-2 px-4 text-gray-600 hover:bg-gray-300">Products</button>
                 <button onclick="location.href='{{ route('add.productform') }}'" class="block py-2 px-4 text-gray-600 hover:bg-gray-300">Add Product</button>
-                <a href="#" class="block py-2 px-4 text-gray-600 hover:bg-gray-300">Orders</a>
+                <button onclick="location.href='{{ route('order.adminshow') }}'" class="block py-2 px-4 text-gray-600 hover:bg-gray-300">Orders</button>
                 <a href="#" class="block py-2 px-4 text-gray-600 hover:bg-gray-300">Payment Methods</a>
-                <a href="#" class="block py-2 px-4 text-gray-600 hover:bg-gray-300">Accounts</a>
+                <button onclick="location.href='{{ route('admin.allusers') }}'" class="block py-2 px-4 text-gray-600 hover:bg-gray-300">Manage Users</button>
             </div>
         </nav>
 

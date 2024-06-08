@@ -1,22 +1,22 @@
 @extends('adminllayout')
 @section('content')
 <div class="ml-5">
-        @if (session()->has('success'))
-            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-5" role="alert">
-                <strong class="font-bold">Success!</strong>
-                <span class="block sm:inline">{{ session('success') }}</span>
-            </div>
-        @elseif (session()->has('error'))
-            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-5" role="alert">
-                <strong class="font-bold">Error!</strong>
-                <span class="block sm:inline">{{ session('error') }}</span>
-            </div>
-        @endif
+    @if (session()->has('success'))
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-5" role="alert">
+            <strong class="font-bold">Success!</strong>
+            <span class="block sm:inline">{{ session('success') }}</span>
+        </div>
+    @elseif (session()->has('error'))
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-5" role="alert">
+            <strong class="font-bold">Error!</strong>
+            <span class="block sm:inline">{{ session('error') }}</span>
+        </div>
+    @endif
 
-    <form action="{{ route('admin.addproduct') }}" method="POST">
+    <form action="{{ route('admin.addproduct') }}" method="POST" enctype="multipart/form-data">
         @csrf
         <div class="mb-4">
-            <label for="product_photo" class="block text-sm font-medium text-gray-700">Product photo</label>
+            <label for="product_photo" class="block text-sm font-medium text-gray-700">Product Photo</label>
             <input type="file" name="product_photo" id="product_photo" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
         </div>
         <div class="mb-4">
@@ -28,8 +28,8 @@
             <input type="text" name="product_name" id="product_name" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
         </div>
         <div class="mb-4">
-            <label for="product_des" class="block text-sm font-medium text-gray-700">Product des</label>
-            <textarea name="product_des" id="product_des" rows="3" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"></textarea>
+            <label for="product_desc" class="block text-sm font-medium text-gray-700">Product Description</label>
+            <textarea name="product_desc" id="product_desc" rows="3" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"></textarea>
         </div>
         <div class="mb-4">
             <label for="product_price" class="block text-sm font-medium text-gray-700">Product Price</label>

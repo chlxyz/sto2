@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Product;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
 class AdminDashboardController extends Controller
@@ -12,10 +13,21 @@ class AdminDashboardController extends Controller
         $products = Product::all();
 
         if($products->isEmpty()){
-            return view ('admin.showproduct')->with('error', 'No product available');
+            return view ('admin.showproduct', compact('products'))->with('error', 'No product available');
         }
         else {
             return view ('admin.showproduct', compact('products'))->with('success', 'Product available');
+        }
+    }
+
+    public function user_index(Request $request){
+        $users = User::all();
+
+        if($users->isEmpty()){
+            return view ('admin.showusers', compact('users'))->with('error', 'No product available');
+        }
+        else {
+            return view ('admin.showusers', compact('users'))->with('success', 'Product available');
         }
     }
     
@@ -31,11 +43,11 @@ class AdminDashboardController extends Controller
 
     public function addProduct(Request $request){
         $request->validate([
-            'product_photo' => 'required',
+            'product_photo' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'product_name' => 'required',
             'product_desc' => 'required',
-            'product_quantity' => 'required',
-            'product_price' => 'required',
+            'product_quantity' => 'required|integer',
+            'product_price' => 'required|numeric',
             'product_type' => 'required',     
         ]);
     
@@ -44,12 +56,15 @@ class AdminDashboardController extends Controller
         
         if($productExists){
             // If product already exists, redirect with error message
-            return redirect()->route('admin.dashboard')->with('error', 'Product already exists! Instead, update the quantity of the existing product.');
+            return redirect()->route('add.productform')->with('error', 'Product already exists! Instead, update the quantity of the existing product.');
         }
         
+        // Handle file upload
+        $productPhotoPath = $request->file('product_photo')->store('product_photos', 'public');
+
         // Create a new product instance
         $product = new Product();
-        $product->product_photo = $request->product_photo;
+        $product->product_photo = $productPhotoPath;
         $product->product_name = $request->product_name;
         $product->product_desc = $request->product_desc;
         $product->product_quantity = $request->product_quantity;
@@ -59,18 +74,25 @@ class AdminDashboardController extends Controller
         // Save the product
         if($product->save()){
             // Redirect with success message if saved successfully
-            return redirect()->route('add.productform')->with('success', 'Product added successfully');
+            return redirect()->route('admin.dashboard')->with('success', 'Product added successfully');
         } else {
             // Redirect with error message if failed to save
             return redirect()->route('add.productform')->with('error', 'Failed to add product');
         }
     }
-
+    
     public function deleteProduct($id){
         $product = Product::find($id);
         $product->delete();
 
         return redirect()->route('admin.dashboard')->with('success', 'Product deleted');
+    }
+
+    public function deleteUser($id){
+        $user = User::find($id);
+        $user->delete();
+
+        return redirect()->route('admin.allusers')->with('success', 'Product deleted');
     }
 
 
