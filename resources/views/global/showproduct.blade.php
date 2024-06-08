@@ -23,19 +23,20 @@
                     <div class="flex justify-between items-center">
                         <p class="text-sm text-gray-700">Price: ${{ $product->product_price }}</p>
                     </div>
-                    <div class="mt-4">
-                        <form id="cartForm_{{ $product->id}}" action="{{ route('cart.add') }}" method="POST">
-                            @csrf
+                    <div class="mt-4 flex justify-start">
+                    <form id="cartForm_{{ $product->id }}" action="{{ route('cart.add') }}" method="POST" class="flex-row justify-start">
+                        @csrf
+                        <div class="flex items-center mb-2">
+                            <button type="button" onclick="decrementQuantity({{ $product->id }})" class="text-blue-500 px-2">-</button>
+                            <input type="number" id="quantity_{{ $product->id }}" name="quantity" value="1" min="1" class="w-12 text-center border border-gray-300 rounded-md mx-2">
+                            <button type="button" onclick="incrementQuantity({{ $product->id }})" class="text-blue-500 px-2">+</button>
+                        </div>
+                        <div class="flex flex-row">
                             <button type="button" onclick="addToCart({{ $product->id }})" class="bg-green-500 text-black rounded-xl pl-5 pr-5 mt-2">Order Now!</button>
                             <input type="hidden" name="product_id" value="{{ $product->id }}">
-                            <div class="flex items-center">
-                                <button type="button" onclick="decrementQuantity({{ $product->id }})" class="text-blue-500 px-2">-</button>
-                                <input type="number" id="quantity_{{ $product->id }}" name="quantity" value="1" min="1" class="w-12 text-center border border-gray-300 rounded-md mx-2">
-                                <button type="button" onclick="incrementQuantity({{ $product->id }})" class="text-blue-500 px-2">+</button>
-                            </div>
-                            <button type="button" onclick="addToCart({{ $product->id }})" class="bg-green-500 text-black rounded-xl pl-5 pr-5 mt-2">Add to cart</button>
-                        </form>
-                        <button type="submit" class="bg-green-500 text-black rounded-xl pl-5 pr-5">Favorite</button>
+                            <button type="button" onclick="addToCart({{ $product->id }})" class="bg-green-500 text-black rounded-xl pl-5 pr-5 mt-2 ml-5">Add to cart</button>
+                        </div>
+                    </form>
                     </div>
                 </div>
             </div>
