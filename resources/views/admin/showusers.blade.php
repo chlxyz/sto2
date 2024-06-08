@@ -3,12 +3,12 @@
 <style>
     .user-table {
     border-collapse: separate;
-    border-spacing: 50px; /* Adjust this value to set the desired gap between columns */
+    border-spacing: 50px;
 }
 
 .user-table th,
 .user-table td {
-    padding: 10px; /* Adjust this value to set the padding inside cells */
+    padding: 10px;
 }
 </style>
 <div class="container mx-auto mt-[-5%] ml-2">
@@ -40,7 +40,6 @@
                         </form>
                     </td>
                 </tr>
-                <!-- Repeat the above <tr> block for each user -->
             </tbody>
         </table>
 

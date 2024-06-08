@@ -24,7 +24,7 @@
         <div class="flex items-center">
             <a href="{{ route('dashboard') }}" class="text-white">Home</a>
         </div>
-        <form action="{{ route('logoutHandler') }}" method="POST" class="flex items-center"> <!-- Updated here -->
+        <form action="{{ route('logoutHandler') }}" method="POST" class="flex items-center">
             @csrf
             <button type="submit" class="border-2 border-solid bg-black text-white border-black px-4 py-2 rounded">Logout</button>
         </form>

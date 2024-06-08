@@ -51,18 +51,14 @@ class AdminDashboardController extends Controller
             'product_type' => 'required',     
         ]);
     
-        // Check if the product already exists
         $productExists = Product::where('product_name', $request->product_name)->exists();
         
         if($productExists){
-            // If product already exists, redirect with error message
             return redirect()->route('add.productform')->with('error', 'Product already exists! Instead, update the quantity of the existing product.');
         }
-        
-        // Handle file upload
+
         $productPhotoPath = $request->file('product_photo')->store('product_photos', 'public');
 
-        // Create a new product instance
         $product = new Product();
         $product->product_photo = $productPhotoPath;
         $product->product_name = $request->product_name;
@@ -71,12 +67,9 @@ class AdminDashboardController extends Controller
         $product->product_price = $request->product_price;
         $product->product_type = $request->product_type;
     
-        // Save the product
         if($product->save()){
-            // Redirect with success message if saved successfully
             return redirect()->route('admin.dashboard')->with('success', 'Product added successfully');
         } else {
-            // Redirect with error message if failed to save
             return redirect()->route('add.productform')->with('error', 'Failed to add product');
         }
     }

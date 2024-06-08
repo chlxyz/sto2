@@ -18,12 +18,8 @@ class PaymentController extends Controller
 
     public function processPayment(Request $request, $orderId)
     {
-        // Validate the request data as needed
-
-        // Retrieve the order
         $order = Order::where('user_id', auth()->id())->where('id', $orderId)->firstOrFail();
 
-        // Update the order status or perform any necessary actions based on the payment method
         if ($request->payment_method === 'ScanBank') {
             return $this->payWithScanBank($orderId);
         } elseif ($request->payment_method === 'Bank Transfer') {
@@ -32,16 +28,10 @@ class PaymentController extends Controller
             return $this->payWithCOD($orderId);
         }
 
-        // For example, if payment method is "ScanBank", update the payment method and set is_paid to true
-        // Similarly, handle other payment methods as required
-
-        // Assuming the payment is successful, update the order status and log the payment activity
         $order->update([
             'is_paid' => true,
-            // Also update other fields as necessary, such as payment_method
         ]);
 
-        // Log the payment activity
         Activity::create([
             'user_id' => auth()->id(),
             'order_id' => $order->id,
@@ -49,7 +39,6 @@ class PaymentController extends Controller
             'details' => 'Payment processed successfully'
         ]);
 
-        // Redirect back to the order details page with a success message
         return redirect()->route('order.show', $orderId)->with('success', 'Payment processed successfully');
     }
 
@@ -59,7 +48,6 @@ class PaymentController extends Controller
         $order = Order::findOrFail($orderId);
         $order->update(['is_paid' => true]);
 
-        // Log the payment activity if needed
         Activity::create([
             'user_id' => auth()->id(),
             'order_id' => $order->id,
@@ -67,14 +55,13 @@ class PaymentController extends Controller
             'details' => 'Payment processed successfully'
         ]);
 
-        // Redirect back to the order details page with a success message
         return redirect()->route('order.show', $orderId)->with('success', 'Payment processed successfully');
     }
 
     public function payWithScanBank($orderId)
     {
         $order = Order::where('user_id', auth()->id())->where('id', $orderId)->firstOrFail();
-        $order->update(['payment_method' => 'ScanBank', 'is_paid' => 1, 'status' => 'paid']); // Update status to 'paid'
+        $order->update(['payment_method' => 'ScanBank', 'is_paid' => 1, 'status' => 'paid']); 
     
         Activity::create([
             'user_id' => auth()->id(),
@@ -97,7 +84,7 @@ class PaymentController extends Controller
     public function payWithBankTransfer($orderId)
     {
         $order = Order::where('user_id', auth()->id())->where('id', $orderId)->firstOrFail();
-        $order->update(['payment_method' => 'Bank Transfer', 'is_paid' => 1, 'status' => 'paid']); // Update status to 'paid'
+        $order->update(['payment_method' => 'Bank Transfer', 'is_paid' => 1, 'status' => 'paid']);
     
         Activity::create([
             'user_id' => auth()->id(),
@@ -127,7 +114,7 @@ class PaymentController extends Controller
     public function payWithCOD($orderId)
     {
         $order = Order::where('user_id', auth()->id())->where('id', $orderId)->firstOrFail();
-        $order->update(['payment_method' => 'Cash on Delivery', 'is_paid' => 1, 'status' => 'paid']); // Update status to 'paid'
+        $order->update(['payment_method' => 'Cash on Delivery', 'is_paid' => 1, 'status' => 'paid']);
     
         Activity::create([
             'user_id' => auth()->id(),

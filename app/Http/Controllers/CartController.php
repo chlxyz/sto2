@@ -79,7 +79,7 @@ class CartController extends Controller
                 'order_id' => $order->id,
                 'product_id' => $cartItem->product_id,
                 'quantity' => $cartItem->quantity,
-                'price' => $cartItem->product->product_price // Make sure this is correctly accessed
+                'price' => $cartItem->product->product_price
             ]);
         }
 

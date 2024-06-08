@@ -20,8 +20,6 @@
                             @endforeach
                         </ul>
                     </div>
-
-                    <!-- Check if the order is not paid, then show the pay button -->
                     @if (!$order->is_paid = 0)
                         <div class="mt-5">
                             <a href="{{ route('payments.methods', ['order' => $order->id]) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
