@@ -43,7 +43,19 @@
     </nav>
 
     <div class="container mx-auto mt-4">
-        @yield('content')
+        <div class="">
+            <form action="" method="POST" class="flex flex-row">
+                <input type="text" name="name" id="name" placeholder="Type any product name...">
+                <div class="bg-black max-w-25 ml-5 rounded-xl">
+                    <button type="submit" class="text-white ml-5 mr-5">Search</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="mt-10">
+            @yield('content')
+
+        </div>
     </div>
 
     <footer class="bg-gray-800 p-4 text-white text-center">
