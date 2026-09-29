@@ -1,0 +1,34 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    // ponytail: pooled pgsql aborts multi-statement DDL transactions; run autocommit.
+    public $withinTransaction = false;
+
+    public function up(): void
+    {
+        Schema::table('cart_item', function (Blueprint $table) {
+            $table->unsignedBigInteger('color_id')->nullable();
+            $table->foreign('color_id')->references('id')->on('colors')->onDelete('set null');
+        });
+
+        Schema::table('order_items', function (Blueprint $table) {
+            $table->unsignedBigInteger('color_id')->nullable();
+            $table->foreign('color_id')->references('id')->on('colors')->onDelete('set null');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('order_items', function (Blueprint $table) {
+            $table->dropConstrainedForeignId('color_id');
+        });
+        Schema::table('cart_item', function (Blueprint $table) {
+            $table->dropConstrainedForeignId('color_id');
+        });
+    }
+};

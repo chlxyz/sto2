@@ -20,6 +20,11 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'display_name',
+        'full_name',
+        'address',
+        'address_lat',
+        'address_lng',
     ];
 
     /**
@@ -48,5 +53,10 @@ class User extends Authenticatable
     public function cartItems()
     {
         return $this->belongsToMany(Product::class, 'carts')->withPivot('quantity');
+    }
+
+    public function addresses()
+    {
+        return $this->hasMany(Address::class);
     }
 }

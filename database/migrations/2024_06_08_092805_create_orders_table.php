@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    // ponytail: pooled pgsql aborts multi-statement DDL transactions; run autocommit.
+    public $withinTransaction = false;
     /**
      * Run the migrations.
      */

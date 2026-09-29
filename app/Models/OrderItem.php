@@ -10,7 +10,10 @@ class OrderItem extends Model
         'order_id',
         'product_id',
         'quantity',
-        'price'
+        'price',
+        'color_id',
+        'size_id',
+        'size_label',
     ];
 
     public function order()
@@ -21,5 +24,15 @@ class OrderItem extends Model
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function color()
+    {
+        return $this->belongsTo(Color::class, 'color_id');
+    }
+
+    public function size()
+    {
+        return $this->belongsTo(Size::class, 'size_id');
     }
 }
