@@ -21,15 +21,24 @@
         </div>
 
         <div class="mt-5">
-            <a href="{{ route('payments.scanbank', ['order' => $order->id]) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                Pay with ScanBank
-            </a>
-            <a href="{{ route('payments.bank_transfer', ['order' => $order->id]) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-5">
-                Pay with Bank Transfer
-            </a>
-            <a href="{{ route('payments.cod', ['order' => $order->id]) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-5">
-                Cash on Delivery (COD)
-            </a>
+            <form action="{{ route('payments.scanbank', ['order' => $order->id]) }}" method="POST" class="inline">
+                @csrf
+                <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    Pay with ScanBank
+                </button>
+            </form>
+            <form action="{{ route('payments.bank_transfer', ['order' => $order->id]) }}" method="POST" class="inline-block ml-5">
+                @csrf
+                <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    Pay with Bank Transfer
+                </button>
+            </form>
+            <form action="{{ route('payments.cod', ['order' => $order->id]) }}" method="POST" class="inline-block ml-5">
+                @csrf
+                <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    Cash on Delivery (COD)
+                </button>
+            </form>
         </div>
     </div>
 @endsection

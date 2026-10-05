@@ -8,6 +8,12 @@
 .env
 .env.backup
 .env.production
+.env.staging
+.env.testing
+.envsitter/
+*.pem
+*.p12
+*.key
 .phpactor.json
 .phpunit.result.cache
 Homestead.json

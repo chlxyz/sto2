@@ -50,6 +50,13 @@ class User extends Authenticatable
         ];
     }
 
+    // Single source of truth for the admin check. Case-insensitive because the OTP
+    // flow lowercases emails on create but config('admin.email') may not.
+    public function isAdmin(): bool
+    {
+        return strcasecmp((string) $this->email, (string) config('admin.email')) === 0;
+    }
+
     public function cartItems()
     {
         return $this->belongsToMany(Product::class, 'carts')->withPivot('quantity');

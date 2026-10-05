@@ -20,7 +20,9 @@ Route::post('/otp/verify', [OtpController::class, 'verify']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'me']);
     Route::patch('/user', [ProfileController::class, 'update']);
-    Route::get('/user/name-suggestions', [ProfileController::class, 'suggestions']);
+    // POST, not GET: the display name is personal data and a query string would
+// land in access logs, proxy logs and browser history.
+Route::post('/user/name-suggestions', [ProfileController::class, 'suggestions']);
     Route::get('/addresses', [AddressController::class, 'index']);
     Route::post('/addresses', [AddressController::class, 'store']);
     Route::patch('/addresses/{id}', [AddressController::class, 'update']);

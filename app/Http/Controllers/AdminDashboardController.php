@@ -32,8 +32,8 @@ class AdminDashboardController extends Controller
     }
     
     public function findProduct(Request $request){
-        $product = Product::find($request->product_id);
-    
+        $product = Product::findOrFail($request->product_id);
+
         return $product;
     }
 
@@ -43,7 +43,7 @@ class AdminDashboardController extends Controller
 
     public function addProduct(Request $request){
         $request->validate([
-            'product_photo' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'product_photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
             'product_name' => 'required',
             'product_desc' => 'required',
             'product_quantity' => 'required|integer',
@@ -75,17 +75,42 @@ class AdminDashboardController extends Controller
     }
     
     public function deleteProduct($id){
-        $product = Product::find($id);
+        $product = Product::findOrFail($id);
+
+        // Mirrors Api\AdminController::destroyProduct so the two admin paths
+        // can't diverge into different integrity rules.
+        if (\App\Models\OrderItem::where('product_id', $product->id)->exists()) {
+            return redirect()->route('admin.dashboard')->with('error', 'Product is referenced by existing orders. Unlist it instead.');
+        }
+
         $product->delete();
 
         return redirect()->route('admin.dashboard')->with('success', 'Product deleted');
     }
 
     public function deleteUser($id){
-        $user = User::find($id);
+        $user = User::findOrFail($id);
+
+        // Mirrors Api\AdminController::destroyUser.
+        if ($user->id === Auth::id()) {
+            return redirect()->route('admin.allusers')->with('error', 'You cannot delete your own account here.');
+        }
+
+        if ($user->isAdmin() && User::where('email', config('admin.email'))->count() <= 1) {
+            return redirect()->route('admin.allusers')->with('error', 'Cannot delete the last admin account.');
+        }
+
+        $open = \App\Models\Order::where('user_id', $user->id)
+            ->whereNotIn('status', ['cancelled', 'completed', 'refunded'])
+            ->count();
+
+        if ($open > 0) {
+            return redirect()->route('admin.allusers')->with('error', "User has {$open} open order(s). Close them first.");
+        }
+
         $user->delete();
 
-        return redirect()->route('admin.allusers')->with('success', 'Product deleted');
+        return redirect()->route('admin.allusers')->with('success', 'User deleted');
     }
 
 
@@ -95,26 +120,32 @@ class AdminDashboardController extends Controller
         return view ('admin.edit', compact('product'));
     }
 
-    public function editProductHandler(Request $request, $id) {
+public function editProductHandler(Request $request, $id) {
         $request->validate([
-            'product_photo' => 'required',
-            'product_name' => 'required',
-            'product_desc' => 'required',
-            'product_quantity' => 'required',
-            'product_price' => 'required',
+            'product_photo' => 'sometimes|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'product_name' => 'required|string|max:255',
+            'product_desc' => 'required|string',
+            'product_quantity' => 'required|integer|min:0',
+            'product_price' => 'required|numeric|min:0',
             'product_type' => 'required',   
         ]);
     
         $product = Product::findOrFail($id);
-    
-        $data = $request->only('product_photo', 'product_name', 'product_desc', 'product_quantity', 'product_price', 'product_type');
 
+        // product_photo is a file input. It used to be read as a plain string and
+        // mass-assigned, so any caller could rewrite the column to an arbitrary
+        // string that destroyProduct would then delete from the public disk.
+        $data = $request->only('product_name', 'product_desc', 'product_quantity', 'product_price', 'product_type');
+
+        if ($request->hasFile('product_photo')) {
+            $data['product_photo'] = $request->file('product_photo')->store('product_photos', 'public');
+        }
     
         $product->update($data);
 
         if($product){
             return redirect()->route('edit.productform', ['id'=>$id])->with('success', 'Successfully updated');
-        }else {
+        } else {
             return redirect()->route('edit.productform', ['id'=>$id])->with('error', 'Failed to update');
         }
     }

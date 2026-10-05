@@ -20,22 +20,27 @@ class OrderController extends Controller
         }
     }
 
-    public function showAdminOrders()
+public function showAdminOrders()
     {
         $user = Auth::user();
-        $orders = Order::where('user_id', auth()->id())->get();
+        // Was scoped to auth()->id(), so /adminorders showed the admin their OWN
+        // orders and nothing else. Route is now auth+admin; show every order.
+        $orders = Order::with(['user', 'orderItems.product'])->latest()->get();
     
-        if ($orders->isEmpty()) {
-            return view('admin.order', compact('orders', 'user'))->with('error', 'Cart is empty');
+        if ($orders->isEmpty()){
+            return view('admin.order', compact('orders', 'user'))->with('error', 'No orders yet');
         } else {
-            return view('admin.order', compact('orders', 'user'))->with('success', 'Cart is filled');
+            return view('admin.order', compact('orders', 'user'))->with('success', 'Order available');
         }
     }
 
-
     public function cancelOrders($orderId){
-        $orders = Order::find($orderId);
-        $orders->delete();
+        // Scoped + status guard, matching Api\OrderController::destroy.
+        $order = Order::where('user_id', auth()->id())->findOrFail($orderId);
+
+        abort_if(in_array($order->status, ['cancelled', 'completed'], true), 422, 'Order cannot be cancelled at this stage.');
+
+        $order->delete();
 
         return redirect()->route('order.show');
     }

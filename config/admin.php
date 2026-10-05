@@ -1,5 +1,7 @@
 <?php
 
 return [
-    'email' => env('ADMIN_EMAIL', 'admin@gmail.com'),
+    // No fallback: a hardcoded default silently provisions a public admin identity.
+    // Fail loudly in config instead.
+    'email' => env('ADMIN_EMAIL'),
 ];

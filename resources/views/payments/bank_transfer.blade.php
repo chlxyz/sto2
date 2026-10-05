@@ -7,6 +7,9 @@
     <p>Bank: XYZ Bank</p>
     <p>Account Number: 123456789</p>
     <p>Amount: ${{ $order->total_price }}</p>
-    <a href="{{ route('payments.confirm_bank_transfer', $order->id) }}" class="btn btn-success">OK</a>
+    <form action="{{ route('payments.confirm_bank_transfer', $order->id) }}" method="POST" class="inline">
+        @csrf
+        <button type="submit" class="btn btn-success">OK</button>
+    </form>
 </div>
 @endsection

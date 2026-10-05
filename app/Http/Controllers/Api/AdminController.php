@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Color;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Setting;
 use App\Models\Size;
@@ -18,6 +19,9 @@ use Illuminate\Support\Facades\Storage;
 class AdminController extends Controller
 {
     use PresentsProducts;
+
+    // Orders in these states are settled history; anything else is still open.
+    private const TERMINAL_STATUSES = ['cancelled', 'completed', 'refunded'];
 
     public function products()
     {
@@ -112,8 +116,8 @@ class AdminController extends Controller
     public function storeProduct(Request $request)
     {
         $data = $request->validate([
-            'product_photo' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
-            'images.*' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+            'product_photo' => 'sometimes|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'images.*' => 'sometimes|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'product_name' => 'required|string|max:255',
             'product_desc' => 'required|string|max:255',
             'product_quantity' => 'required|integer|min:0',
@@ -130,7 +134,7 @@ class AdminController extends Controller
             'sizes.*.label' => 'required_with:sizes|string|max:255',
             'sizes.*.stock' => 'sometimes|integer|min:0',
             'size_chart_title' => 'sometimes|nullable|string|max:255',
-            'size_chart_image' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+            'size_chart_image' => 'sometimes|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'remove_size_chart' => 'sometimes|boolean',
         ]);
 
@@ -180,8 +184,8 @@ class AdminController extends Controller
         $product = Product::findOrFail($id);
 
         $data = $request->validate([
-            'product_photo' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
-            'images.*' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+            'product_photo' => 'sometimes|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'images.*' => 'sometimes|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'product_name' => 'required|string|max:255',
             'product_desc' => 'required|string|max:255',
             'product_quantity' => 'required|integer|min:0',
@@ -198,7 +202,7 @@ class AdminController extends Controller
             'sizes.*.label' => 'required_with:sizes|string|max:255',
             'sizes.*.stock' => 'sometimes|integer|min:0',
             'size_chart_title' => 'sometimes|nullable|string|max:255',
-            'size_chart_image' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+            'size_chart_image' => 'sometimes|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'remove_size_chart' => 'sometimes|boolean',
             'remove_image_ids' => 'sometimes|array',
             'remove_image_ids.*' => 'integer',
@@ -332,7 +336,15 @@ class AdminController extends Controller
 
     public function destroyVoucher($id)
     {
-        Voucher::findOrFail($id)->delete();
+        $voucher = Voucher::findOrFail($id);
+
+        // Deleting a redeemed voucher destroys the audit trail for orders that
+        // used it. Deactivate instead.
+        if ($voucher->used_count > 0) {
+            return response()->json(['message' => 'Voucher has been redeemed. Deactivate it instead of deleting.'], 422);
+        }
+
+        $voucher->delete();
 
         return response()->json(null, 204);
     }
@@ -363,6 +375,13 @@ class AdminController extends Controller
     public function destroyProduct($id)
     {
         $product = Product::findOrFail($id);
+
+        // Deleting a product that appears in order_items silently rewrites
+        // order history. Same shape as the destroySize guard below.
+        if (OrderItem::where('product_id', $product->id)->exists()) {
+            return response()->json(['message' => 'Product is referenced by existing orders. Unlist it instead.'], 422);
+        }
+
         foreach ($product->images as $img) {
             Storage::disk('public')->delete($img->path);
         }
@@ -377,7 +396,7 @@ class AdminController extends Controller
 
     public function setColorImage(Request $request, $productId, $colorId)
     {
-        $data = $request->validate(['image' => 'required|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048']);
+        $data = $request->validate(['image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048']);
 
         $product = Product::findOrFail($productId);
         if (! $product->colors->contains('id', (int) $colorId)) {
@@ -395,6 +414,11 @@ class AdminController extends Controller
     public function detachColor($productId, $colorId)
     {
         $product = Product::findOrFail($productId);
+
+        if (OrderItem::where('product_id', $product->id)->where('color_id', $colorId)->exists()) {
+            return response()->json(['message' => 'This colour is referenced by existing orders.'], 422);
+        }
+
         $old = DB::table('color_product')->where('product_id', $product->id)->where('color_id', $colorId)->value('image_path');
         $old && Storage::disk('public')->delete($old);
         $product->colors()->detach($colorId);
@@ -423,9 +447,30 @@ class AdminController extends Controller
         return response()->json(User::latest()->get(['id', 'name', 'email', 'created_at']));
     }
 
-    public function destroyUser($id)
+    public function destroyUser(Request $request, $id)
     {
-        User::findOrFail($id)->delete();
+        $user = User::findOrFail($id);
+
+        // Role alone must not be able to destroy the account. These three checks
+        // exist because deleting the admin frees ADMIN_EMAIL for anyone to claim
+        // via POST /api/register.
+        if ($user->id === $request->user()->id) {
+            return response()->json(['message' => 'You cannot delete your own account here.'], 422);
+        }
+
+        if ($user->isAdmin() && User::where('email', config('admin.email'))->count() <= 1) {
+            return response()->json(['message' => 'Cannot delete the last admin account.'], 422);
+        }
+
+        $open = Order::where('user_id', $user->id)
+            ->whereNotIn('status', self::TERMINAL_STATUSES)
+            ->count();
+
+        if ($open > 0) {
+            return response()->json(['message' => "User has {$open} open order(s). Close them first."], 422);
+        }
+
+        $user->delete();
 
         return response()->json(null, 204);
     }

@@ -27,6 +27,7 @@ class CartController extends Controller
     {
         $request->validate([
             'product_id' => 'required|exists:products,id',
+            'quantity' => 'required|integer|min:1|max:99',
         ]);
 
         $existingCartItem = CartItem::where('user_id', auth()->id())
@@ -48,8 +49,8 @@ class CartController extends Controller
 
     public function deleteItem($id)
     {
-        $cartItem = CartItem::find($id);
-        $cartItem->delete();
+        // Scoped: an unscoped find() here let any visitor delete anyone's cart line.
+        CartItem::where('user_id', auth()->id())->findOrFail($id)->delete();
         
         return redirect()->route('cart.index')->with('success', 'Item removed from cart successfully');
     }

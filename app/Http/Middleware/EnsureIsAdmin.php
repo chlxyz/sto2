@@ -9,7 +9,7 @@ class EnsureIsAdmin
 {
     public function handle(Request $request, Closure $next)
     {
-        if ($request->user()?->email !== config('admin.email')) {
+        if (! $request->user()?->isAdmin()) {
             abort(403, 'Admin access only.');
         }
 

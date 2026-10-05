@@ -18,7 +18,9 @@ class OtpCodeMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: 'Your STO2 login code: '.$this->code);
+        // No code in the subject: subjects get logged by mail relays, shown in
+        // push-notification previews and archived in mailboxes in plain view.
+        return new Envelope(subject: 'Your STO2 login code');
     }
 
     public function content(): Content
