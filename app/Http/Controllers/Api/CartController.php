@@ -29,6 +29,10 @@ class CartController extends Controller
     {
         $items = CartItem::with(['product.types', 'product.images', 'product.colors', 'product.sizes', 'product.sizeChart', 'color', 'size'])
             ->where('user_id', $request->user()->id)
+            // Newest first. Keyed on id, not created_at: id is serial so it
+            // matches insertion order exactly and cannot tie, whereas two adds
+            // in the same second share a created_at and come back unordered.
+            ->latest('id')
             ->get()
             ->map(fn ($item) => [
                 'id' => $item->id,
@@ -101,17 +105,56 @@ class CartController extends Controller
 
     public function update(Request $request, $id)
     {
-        $data = $request->validate(['quantity' => 'required|integer|min:1']);
+        $data = $request->validate([
+            'quantity' => 'required|integer|min:1',
+            'color_id' => 'sometimes|nullable|integer|exists:colors,id',
+            'size_id' => 'sometimes|nullable|integer|exists:sizes,id',
+        ]);
 
         $item = CartItem::where('user_id', $request->user()->id)->findOrFail($id);
-        $item->loadMissing(['product.sizes']);
+        $item->loadMissing(['product.colors', 'product.sizes']);
 
-        $stock = $this->lineStock($item->product, $item->size_id);
+        $colorId = array_key_exists('color_id', $data) ? $data['color_id'] : $item->color_id;
+        $sizeId = array_key_exists('size_id', $data) ? $data['size_id'] : $item->size_id;
+
+        if ($colorId && ! $item->product->colors->contains('id', $colorId)) {
+            return response()->json(['message' => 'Invalid color for this product.'], 422);
+        }
+
+        if ($item->product->sizes->isNotEmpty() && ! $sizeId) {
+            return response()->json(['message' => 'Please choose a size.'], 422);
+        }
+        if ($sizeId && ! $item->product->sizes->contains('id', $sizeId)) {
+            return response()->json(['message' => 'Invalid size for this product.'], 422);
+        }
+
+        // Stock of the *new* variant, not the old line's.
+        $stock = $this->lineStock($item->product, $sizeId);
         if ($stock <= 0) {
             return response()->json(['message' => 'Product is out of stock.'], 422);
         }
 
-        $item->update(['quantity' => min($data['quantity'], $stock)]);
+        $quantity = min($data['quantity'], $stock);
+
+        // Switching onto a variant already in the cart folds into that line
+        // instead of leaving a duplicate row for the same (product,color,size).
+        // Two statements, deliberately not transactional: pooled pgsql rejects
+        // multi-statement transactions (see UsesTestDatabase).
+        $twin = CartItem::where('user_id', $item->user_id)
+            ->where('product_id', $item->product_id)
+            ->where('color_id', $colorId)
+            ->where('size_id', $sizeId)
+            ->where('id', '!=', $item->id)
+            ->first();
+
+        if ($twin) {
+            $twin->update(['quantity' => min($twin->quantity + $quantity, $stock)]);
+            $item->delete();
+
+            return response()->json($twin->load(['product', 'color', 'size']));
+        }
+
+        $item->update(['quantity' => $quantity, 'color_id' => $colorId, 'size_id' => $sizeId]);
 
         return response()->json($item->load(['product', 'color', 'size']));
     }

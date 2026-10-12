@@ -52,14 +52,26 @@ class OtpController extends Controller
 
         if (! $recent) {
             $code = (string) random_int(100000, 999999);
-            DB::table('email_otps')->insert([
+            $id = DB::table('email_otps')->insertGetId([
                 'email' => $email,
                 'code_hash' => self::hash($code),
                 'expires_at' => now()->addMinutes(self::TTL_MINUTES),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-            Mail::to($email)->send(new OtpCodeMail($code));
+
+            try {
+                Mail::to($email)->send(new OtpCodeMail($code));
+            } catch (\Throwable $e) {
+                // The row is already live, so keeping it would trip the cooldown
+                // and silently swallow every retry. Roll it back and be honest.
+                report($e);
+                DB::table('email_otps')->where('id', $id)->delete();
+
+                return response()->json([
+                    'message' => 'Email delivery is temporarily unavailable. Try again shortly.',
+                ], 503);
+            }
         }
 
         return response()->json(['message' => 'If this address can receive mail, a code is on its way.']);

@@ -62,6 +62,7 @@ Route::post('/user/name-suggestions', [ProfileController::class, 'suggestions'])
         Route::delete('/admin/users/{id}', [AdminController::class, 'destroyUser']);
 
         Route::get('/admin/orders', [AdminController::class, 'orders']);
+        Route::patch('/admin/orders/{id}/status', [AdminController::class, 'updateOrderStatus']);
         Route::get('/admin/vouchers', [AdminController::class, 'vouchers']);
         Route::post('/admin/vouchers', [AdminController::class, 'storeVoucher']);
         Route::patch('/admin/vouchers/{id}', [AdminController::class, 'updateVoucher']);

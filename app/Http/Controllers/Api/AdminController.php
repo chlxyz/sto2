@@ -23,6 +23,11 @@ class AdminController extends Controller
     // Orders in these states are settled history; anything else is still open.
     private const TERMINAL_STATUSES = ['cancelled', 'completed', 'refunded'];
 
+    // Fulfilment track, forward-only. Mirrors TRACK in sto2-frontend
+    // src/lib/orderStatus.js -- that select is only a convenience, these rules
+    // are the actual boundary.
+    private const TRACK = ['paid', 'prepared', 'shipped', 'completed'];
+
     public function products()
     {
         $products = Product::with(['types', 'images', 'colors', 'sizes', 'sizeChart'])
@@ -475,33 +480,88 @@ class AdminController extends Controller
         return response()->json(null, 204);
     }
 
+    private function presentAdminOrder($o): array
+    {
+        return [
+            'id' => $o->id,
+            'user' => $o->user,
+            'total_price' => (float) $o->total_price,
+            'subtotal' => (float) ($o->subtotal ?? $o->total_price),
+            'discount_total' => (float) ($o->discount_total ?? 0),
+            'voucher_codes' => $o->voucher_codes ?? [],
+            'voucher_amount' => (float) ($o->voucher_amount ?? 0),
+            'tax_amount' => (float) ($o->tax_amount ?? 0),
+            'shipping_amount' => (float) ($o->shipping_amount ?? 0),
+            'status' => $o->status,
+            'payment_method' => $o->payment_method,
+            'is_paid' => (bool) $o->is_paid,
+            'created_at' => $o->created_at,
+            'items' => $o->orderItems->map(fn ($i) => [
+                'product_name' => $i->product->product_name,
+                'quantity' => $i->quantity,
+                'price' => (float) $i->price,
+                'color' => $i->color?->name,
+                'size' => $i->size_label ?? $i->size?->label,
+                'image_url' => $i->product->product_photo
+                    ? asset('storage/'.$i->product->product_photo)
+                    : null,
+            ]),
+        ];
+    }
+
+    private const ORDER_RELATIONS = ['user:id,name,email', 'orderItems.product', 'orderItems.color', 'orderItems.size'];
+
     public function orders()
     {
-        return response()->json(Order::with(['user:id,name,email', 'orderItems.product', 'orderItems.color', 'orderItems.size'])
-            ->latest()->get()->map(fn ($o) => [
-                'id' => $o->id,
-                'user' => $o->user,
-                'total_price' => (float) $o->total_price,
-                'subtotal' => (float) ($o->subtotal ?? $o->total_price),
-                'discount_total' => (float) ($o->discount_total ?? 0),
-                'voucher_codes' => $o->voucher_codes ?? [],
-                'voucher_amount' => (float) ($o->voucher_amount ?? 0),
-                'tax_amount' => (float) ($o->tax_amount ?? 0),
-                'shipping_amount' => (float) ($o->shipping_amount ?? 0),
-                'status' => $o->status,
-                'payment_method' => $o->payment_method,
-                'is_paid' => (bool) $o->is_paid,
-                'created_at' => $o->created_at,
-                'items' => $o->orderItems->map(fn ($i) => [
-                    'product_name' => $i->product->product_name,
-                    'quantity' => $i->quantity,
-                    'price' => (float) $i->price,
-                    'color' => $i->color?->name,
-                    'size' => $i->size_label ?? $i->size?->label,
-                    'image_url' => $i->product->product_photo
-                        ? asset('storage/'.$i->product->product_photo)
-                        : null,
-                ]),
-            ]));
+        return response()->json(
+            Order::with(self::ORDER_RELATIONS)->latest()->get()
+                ->map(fn ($o) => $this->presentAdminOrder($o))
+        );
+    }
+
+    public function updateOrderStatus(Request $request, $id)
+    {
+        $data = $request->validate(['status' => 'required|string|max:255']);
+        $target = strtolower(trim($data['status']));
+
+        if (! in_array($target, self::TRACK, true)) {
+            return response()->json(['message' => "Unknown status \"{$target}\"."], 422);
+        }
+
+        $order = Order::with(self::ORDER_RELATIONS)->findOrFail($id);
+
+        // A settled order is history; never reopen it. Also keeps the
+        // index-based rule below from reading a terminal status as "off-track".
+        if (in_array($order->status, self::TERMINAL_STATUSES, true)) {
+            return response()->json(['message' => "Order is already {$order->status}."], 422);
+        }
+
+        $from = array_search($order->status, self::TRACK, true);
+        $to = array_search($target, self::TRACK, true);
+
+        // No-op rather than 422, so a double-click or a stale tab cannot fail.
+        if ($from === $to) {
+            return response()->json($this->presentAdminOrder($order));
+        }
+
+        // Forward-only. $from === false means the order has not entered the
+        // fulfilment track yet (pending / awaiting_scan), which is what lets an
+        // admin mark an offline payment as paid.
+        if ($from !== false && $to < $from) {
+            return response()->json([
+                'message' => "Cannot move an order from {$order->status} to {$target}.",
+            ], 422);
+        }
+
+        // Everything from 'prepared' on means the goods are committed and the
+        // money is in. Guarding only 'prepared' would leave pending -> shipped
+        // wide open, which is the hole forward-only exists to close.
+        if (! $order->is_paid && $to >= array_search('prepared', self::TRACK, true)) {
+            return response()->json(['message' => 'Order is not paid.'], 422);
+        }
+
+        $order->update(['status' => $target]);
+
+        return response()->json($this->presentAdminOrder($order->fresh(self::ORDER_RELATIONS)));
     }
 }
