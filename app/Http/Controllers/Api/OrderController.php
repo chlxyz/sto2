@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Support\ImageUrl;
 use Illuminate\Http\Request;
 
 class OrderController extends Controller
@@ -30,9 +31,7 @@ class OrderController extends Controller
                 'price' => (float) $item->price,
                 'color' => $item->color?->name,
                 'size' => $item->size_label ?? $item->size?->label,
-                'image_url' => $item->product->product_photo
-                    ? asset('storage/'.$item->product->product_photo)
-                    : null,
+                'image_url' => ImageUrl::make($item->product->product_photo),
             ]),
         ];
     }

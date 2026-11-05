@@ -16,7 +16,7 @@
 
         @foreach ($products as $product)
             <div class="bg-white shadow-md rounded-md overflow-hidden">
-                <img src="{{ asset('storage/' . $product->product_photo) }}" alt="product photo" class="w-full h-64 object-cover">
+                <img src="{{ \App\Support\ImageUrl::make($product->product_photo) }}" alt="product photo" class="w-full h-64 object-cover">
                 <div class="p-4">
                     <h1 class="text-xl font-bold mb-2">{{ $product->product_name }}</h1>
                     <p class="text-sm text-gray-600 mb-2">{{ $product->product_desc }}</p>

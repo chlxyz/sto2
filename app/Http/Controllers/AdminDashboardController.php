@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use EnvInterface;
 
 class AdminDashboardController extends Controller
 {
@@ -57,7 +59,7 @@ class AdminDashboardController extends Controller
             return redirect()->route('add.productform')->with('error', 'Product already exists! Instead, update the quantity of the existing product.');
         }
 
-        $productPhotoPath = $request->file('product_photo')->store('product_photos', 'public');
+        $productPhotoPath = $request->file('product_photo')->store('product_photos', 'minio');
 
         $product = new Product();
         $product->product_photo = $productPhotoPath;
@@ -83,6 +85,7 @@ class AdminDashboardController extends Controller
             return redirect()->route('admin.dashboard')->with('error', 'Product is referenced by existing orders. Unlist it instead.');
         }
 
+        $product->product_photo && Storage::disk('minio')->delete($product->product_photo);
         $product->delete();
 
         return redirect()->route('admin.dashboard')->with('success', 'Product deleted');
@@ -134,13 +137,14 @@ public function editProductHandler(Request $request, $id) {
 
         // product_photo is a file input. It used to be read as a plain string and
         // mass-assigned, so any caller could rewrite the column to an arbitrary
-        // string that destroyProduct would then delete from the public disk.
+        // string that destroyProduct would then delete from the bucket.
         $data = $request->only('product_name', 'product_desc', 'product_quantity', 'product_price', 'product_type');
 
         if ($request->hasFile('product_photo')) {
-            $data['product_photo'] = $request->file('product_photo')->store('product_photos', 'public');
+            $product->product_photo && Storage::disk('minio')->delete($product->product_photo);
+            $data['product_photo'] = $request->file('product_photo')->store('product_photos', 'minio');
         }
-    
+
         $product->update($data);
 
         if($product){

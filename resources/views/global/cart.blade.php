@@ -16,7 +16,7 @@
 @foreach ($cartItems as $cartItem)
     <div class="flex justify-between items-center border-b-2 border-gray-200 py-2">
         <div class="flex items-center">
-            <img src="{{ asset('storage/' . $cartItem->product->product_photo) }}" alt="product photo" class="w-20 h-20 object-cover">
+            <img src="{{ \App\Support\ImageUrl::make($cartItem->product->product_photo) }}" alt="product photo" class="w-20 h-20 object-cover">
             <div class="ml-4">
                 <h1 class="text-xl font-bold">{{ $cartItem->product->product_name }}</h1>
                 <p class="text-sm text-gray-600">Price: ${{ $cartItem->product->product_price }}</p>

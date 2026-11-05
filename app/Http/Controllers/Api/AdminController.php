@@ -12,6 +12,7 @@ use App\Models\Size;
 use App\Models\Type;
 use App\Models\User;
 use App\Models\Voucher;
+use App\Support\ImageUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -89,14 +90,14 @@ class AdminController extends Controller
 
         $chart = $product->sizeChart()->firstOrNew([]);
         if ($remove && ! $title && ! $hasFile) {
-            $chart->image_path && Storage::disk('public')->delete($chart->image_path);
+            $chart->image_path && Storage::disk('minio')->delete($chart->image_path);
             $chart->delete();
 
             return;
         }
         if ($hasFile) {
-            $chart->image_path && Storage::disk('public')->delete($chart->image_path);
-            $chart->image_path = $request->file('size_chart_image')->store('size_charts', 'public');
+            $chart->image_path && Storage::disk('minio')->delete($chart->image_path);
+            $chart->image_path = $request->file('size_chart_image')->store('size_charts', 'minio');
         }
         if ($title !== null) {
             $chart->title = $title ?: 'Size chart';
@@ -153,10 +154,10 @@ class AdminController extends Controller
 
         $paths = [];
         if ($request->hasFile('product_photo')) {
-            $paths[] = $request->file('product_photo')->store('product_photos', 'public');
+            $paths[] = $request->file('product_photo')->store('product_photos', 'minio');
         }
         foreach ($request->file('images', []) as $file) {
-            $paths[] = $file->store('product_photos', 'public');
+            $paths[] = $file->store('product_photos', 'minio');
         }
 
         $product = Product::create([
@@ -219,16 +220,16 @@ class AdminController extends Controller
 
         $paths = [];
         if ($request->hasFile('product_photo')) {
-            $product->product_photo && Storage::disk('public')->delete($product->product_photo);
-            $paths[] = $request->file('product_photo')->store('product_photos', 'public');
+            $product->product_photo && Storage::disk('minio')->delete($product->product_photo);
+            $paths[] = $request->file('product_photo')->store('product_photos', 'minio');
         }
         foreach ($request->file('images', []) as $file) {
-            $paths[] = $file->store('product_photos', 'public');
+            $paths[] = $file->store('product_photos', 'minio');
         }
         if (! empty($data['remove_image_ids'])) {
             $gone = $product->images()->whereIn('id', $data['remove_image_ids'])->get();
             foreach ($gone as $img) {
-                Storage::disk('public')->delete($img->path);
+                Storage::disk('minio')->delete($img->path);
                 $img->delete();
             }
         }
@@ -388,11 +389,11 @@ class AdminController extends Controller
         }
 
         foreach ($product->images as $img) {
-            Storage::disk('public')->delete($img->path);
+            Storage::disk('minio')->delete($img->path);
         }
-        $product->product_photo && Storage::disk('public')->delete($product->product_photo);
+        $product->product_photo && Storage::disk('minio')->delete($product->product_photo);
         foreach ($product->colors as $color) {
-            $color->pivot->image_path && Storage::disk('public')->delete($color->pivot->image_path);
+            $color->pivot->image_path && Storage::disk('minio')->delete($color->pivot->image_path);
         }
         $product->delete();
 
@@ -409,8 +410,8 @@ class AdminController extends Controller
         }
 
         $old = DB::table('color_product')->where('product_id', $product->id)->where('color_id', $colorId)->value('image_path');
-        $old && Storage::disk('public')->delete($old);
-        $path = $request->file('image')->store('product_colors', 'public');
+        $old && Storage::disk('minio')->delete($old);
+        $path = $request->file('image')->store('product_colors', 'minio');
         $product->colors()->updateExistingPivot($colorId, ['image_path' => $path]);
 
         return response()->json(self::presentProduct($product->fresh()));
@@ -425,7 +426,7 @@ class AdminController extends Controller
         }
 
         $old = DB::table('color_product')->where('product_id', $product->id)->where('color_id', $colorId)->value('image_path');
-        $old && Storage::disk('public')->delete($old);
+        $old && Storage::disk('minio')->delete($old);
         $product->colors()->detach($colorId);
 
         return response()->json(self::presentProduct($product->fresh()));
@@ -502,9 +503,7 @@ class AdminController extends Controller
                 'price' => (float) $i->price,
                 'color' => $i->color?->name,
                 'size' => $i->size_label ?? $i->size?->label,
-                'image_url' => $i->product->product_photo
-                    ? asset('storage/'.$i->product->product_photo)
-                    : null,
+                'image_url' => ImageUrl::make($i->product->product_photo),
             ]),
         ];
     }

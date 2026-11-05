@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Support\ImageUrl;
+
 trait PresentsProducts
 {
     protected static function presentProduct($p): array
@@ -29,13 +31,13 @@ trait PresentsProducts
             'released_at' => $p->released_at,
             'is_preorder' => $p->isPreorder(),
             'types' => $p->types->pluck('name')->all(),
-            'images' => $p->images->map(fn ($img) => ['id' => $img->id, 'url' => asset('storage/'.$img->path)])->all()
-                ?: ($p->product_photo ? [['id' => null, 'url' => asset('storage/'.$p->product_photo)]] : []),
+            'images' => $p->images->map(fn ($img) => ['id' => $img->id, 'url' => ImageUrl::make($img->path)])->all()
+                ?: ($p->product_photo ? [['id' => null, 'url' => ImageUrl::make($p->product_photo)]] : []),
             'colors' => $p->colors->map(fn ($c) => [
                 'id' => $c->id,
                 'name' => $c->name,
                 'hex' => $c->hex,
-                'image_url' => $c->pivot->image_path ? asset('storage/'.$c->pivot->image_path) : null,
+                'image_url' => ImageUrl::make($c->pivot->image_path),
             ])->all(),
             'sizes' => $p->sizes->map(fn ($s) => [
                 'id' => $s->id,
@@ -44,7 +46,7 @@ trait PresentsProducts
             ])->all(),
             'size_chart' => $p->sizeChart ? [
                 'title' => $p->sizeChart->title,
-                'image_url' => $p->sizeChart->image_path ? asset('storage/'.$p->sizeChart->image_path) : null,
+                'image_url' => ImageUrl::make($p->sizeChart->image_path),
             ] : null,
         ];
     }

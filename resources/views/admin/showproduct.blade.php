@@ -4,7 +4,7 @@
     @foreach ($products as $product)
         <div class="flex justify-between items-center border-b-2 border-gray-200 py-2">
             <div>
-                <img src="{{ asset('storage/' . $product->product_photo) }}" alt="product photo" class="w-20 h-20 object-cover">
+                <img src="{{ \App\Support\ImageUrl::make($product->product_photo) }}" alt="product photo" class="w-20 h-20 object-cover">
             </div>
             <div>
                 <h1 class="text-xl font-bold">{{ $product->product_name }}</h1>
