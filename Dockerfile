@@ -25,8 +25,11 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 
 RUN sed -ri \
-    -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
-    /etc/apache2/sites-available/*.conf
+        -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
+        /etc/apache2/sites-available/*.conf \
+    && printf '<Directory /var/www/html/public>\n    AllowOverride All\n    Require all granted\n</Directory>\n' \
+        > /etc/apache2/conf-available/laravel.conf \
+    && a2enconf laravel
 
 # Copy Composer files
 COPY composer.json composer.lock ./
@@ -42,13 +45,15 @@ RUN composer install \
 # Copy Laravel source code
 COPY . .
 
-# Set permissions
-RUN chown -R www-data:www-data \
-    storage \
-    bootstrap/cache
-
 # Enable PHP production settings
-RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
+    && printf 'upload_max_filesize=10M\npost_max_size=20M\n' > "$PHP_INI_DIR/conf.d/uploads.ini"
+
+# Expose uploaded files under /storage and set permissions
+RUN php artisan storage:link \
+    && chown -R www-data:www-data \
+        storage \
+        bootstrap/cache
 
 EXPOSE 80
 

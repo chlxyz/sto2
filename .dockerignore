@@ -2,9 +2,13 @@
 .env
 .env.*
 !.env.example
+.envsitter/
 
 vendor
 node_modules
+
+public/storage
+bootstrap/cache/*.php
 
 storage/logs/*
 storage/framework/cache/*
